@@ -5,6 +5,7 @@ namespace LoadSplitter
 {
 	public class LoadContainer
 	{
+		public static int NumOfItems { get; set; } = 1002;
 		public List<DataItem> DataItems { get; set; }
 
 		public LoadContainer()
@@ -17,12 +18,13 @@ namespace LoadSplitter
 		{
 			var id = 1;
 			var data = new List<DataItem>();
-			for (var i = 0; i < 1002; i++)
+			for (var i = 0; i < NumOfItems; i++)
 			{
 				data.Add(new DataItem
 				{
 					Id = id++,
-					Value = Path.GetRandomFileName().Replace(".", "")
+					Value = Path.GetRandomFileName().Replace(".", ""),
+					Done = false
 				});
 			}
 

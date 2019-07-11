@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 namespace LoadSplitter
@@ -18,6 +19,8 @@ namespace LoadSplitter
 
 		private static void ProcessData(ThreadPoolConfig config, List<DataItem> data)
 		{
+			var doneEvents = new List<ManualResetEvent>();
+
 			ThreadPool.GetMaxThreads(out var workers, out var ports);
 			Console.WriteLine($"Max worker threads: {workers}. Max completion port threads: {ports}");
 
@@ -33,20 +36,36 @@ namespace LoadSplitter
 				numItemsToProcess -= nextChunkSize;
 				startIndex += nextChunkSize;
 
-				ThreadPool.QueueUserWorkItem(ThreadFunc, dataToProcess);
+				var doneEvent = new ManualResetEvent(false);
+				doneEvents.Add(doneEvent);
+				var threadRequest = new ThreadRequest
+				{
+					DataItems = dataToProcess,
+					DoneEvent = doneEvent
+				};
+				ThreadPool.QueueUserWorkItem(ThreadFunc, threadRequest);
 			}
+
+			WaitHandle.WaitAll(doneEvents.ToArray());
+			var unprocessedItems = data.Where(x => x.Done == false).ToList();
+			Console.WriteLine($"All threads done processing. Unprocessed item count {unprocessedItems.Count}");
 		}
 
-		private static void ThreadFunc(object data)
+		private static void ThreadFunc(object request)
 		{
 			var thread = Thread.CurrentThread;
-			var dataToProcess = (List<DataItem>) data;
+			var threadRequest = (ThreadRequest) request;
+			var dataToProcess = threadRequest.DataItems;
+			var doneEvent = threadRequest.DoneEvent;
 
 			// Process the data
 			foreach (var dataItem in dataToProcess)
 			{
+				dataItem.Done = true;
 				Console.WriteLine($"Item: {dataItem.Id} {dataItem.Value} (Thread Id: {thread.ManagedThreadId})");
 			}
+
+			doneEvent.Set();
 		}
 	}
 }
