@@ -13,7 +13,6 @@ namespace LoadSplitter
 			DataItems = PopulateDataItems();
 		}
 
-
 		private static List<DataItem> PopulateDataItems()
 		{
 			var id = 1;
@@ -23,8 +22,7 @@ namespace LoadSplitter
 				data.Add(new DataItem
 				{
 					Id = id++,
-					Value = Path.GetRandomFileName().Replace(".", ""),
-					Done = false
+					Value = Path.GetRandomFileName().Replace(".", "")
 				});
 			}
 

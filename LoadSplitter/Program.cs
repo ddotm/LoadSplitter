@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -9,17 +10,39 @@ namespace LoadSplitter
 	{
 		private static void Main(string[] args)
 		{
+			var stopwatch = Stopwatch.StartNew();
+			stopwatch.Start();
+
+			var config = new ThreadPoolConfig();
+
 			// Fetch data to be processed
 			var dataContainer = new LoadContainer();
-			var config = new ThreadPoolConfig();
-			ProcessData(config, dataContainer.DataItems);
+			// Process data with multiple threads
+			ProcessDataWithThreadPool(config, dataContainer.DataItems);
+
+			stopwatch.Stop();
+			var multithreadElapsed = stopwatch.Elapsed;
+			
+			// SINGLE THREAD PROCESSING for benchmarking
+//			stopwatch.Reset();
+//			stopwatch.Start();
+//			ProcessDataItems(dataContainer.DataItems, 0);
+//			stopwatch.Stop();
+//			Console.WriteLine(
+//				$"1 thread took {stopwatch.Elapsed} to process {dataContainer.DataItems.Count}");
+
+			Console.WriteLine(
+				$"{config.MaxWorkerThreads} threads took {multithreadElapsed} to process {dataContainer.DataItems.Count}");
+
 
 			Console.ReadKey();
 		}
 
-		private static void ProcessData(ThreadPoolConfig config, List<DataItem> data)
+		private static void ProcessDataWithThreadPool(ThreadPoolConfig config, List<DataItem> data)
 		{
 			var doneEvents = new List<ManualResetEvent>();
+			var reqs = new List<ThreadRequest>();
+			var unprocessedCount = 0;
 
 			ThreadPool.GetMaxThreads(out var workers, out var ports);
 			Console.WriteLine($"Max worker threads: {workers}. Max completion port threads: {ports}");
@@ -38,13 +61,15 @@ namespace LoadSplitter
 						x.Close();
 						return x.SafeWaitHandle.IsClosed == true;
 					});
+					unprocessedCount += reqs.Count(x => x.ProcessingDone == false && x.DoneEvent.SafeWaitHandle.IsClosed == true);
+					reqs.RemoveAll(x => x.DoneEvent.SafeWaitHandle.IsClosed == true);
 					continue;
 				}
 
 				var nextChunkSize =
 					numItemsToProcess >= config.DataChunkSize ? config.DataChunkSize : numItemsToProcess;
 				var dataToProcess = data.GetRange(startIndex, nextChunkSize);
-
+				
 				Console.WriteLine(
 					$"Processing next {nextChunkSize} items of {numItemsToProcess} starting at {startIndex}");
 
@@ -57,14 +82,17 @@ namespace LoadSplitter
 				var threadRequest = new ThreadRequest
 				{
 					DataItems = dataToProcess,
-					DoneEvent = doneEvent
+					DoneEvent = doneEvent,
+					ProcessingDone = false
 				};
+				reqs.Add(threadRequest);
+
 				ThreadPool.QueueUserWorkItem(ThreadFunc, threadRequest);
 			}
 
 			WaitHandle.WaitAll(doneEvents.ToArray());
-			var unprocessedItems = data.Where(x => x.Done == false).ToList();
-			Console.WriteLine($"All threads done processing. Unprocessed item count {unprocessedItems.Count}");
+			unprocessedCount += reqs.Count(x => x.ProcessingDone == false);
+			Console.WriteLine($"All threads done processing. Unprocessed item count {unprocessedCount}");
 		}
 
 		private static void ThreadFunc(object request)
@@ -75,13 +103,18 @@ namespace LoadSplitter
 			var doneEvent = threadRequest.DoneEvent;
 
 			// Process the data
+			ProcessDataItems(dataToProcess, thread.ManagedThreadId);
+			threadRequest.ProcessingDone = true;
+			doneEvent.Set();
+		}
+
+		private static void ProcessDataItems(List<DataItem> dataToProcess, int threadId)
+		{
 			foreach (var dataItem in dataToProcess)
 			{
-				dataItem.Done = true;
-				Console.WriteLine($"Item: {dataItem.Id} {dataItem.Value} (Thread Id: {thread.ManagedThreadId})");
+				// Thread.Sleep(50);
+				Console.WriteLine($"Item: {dataItem.Id} {dataItem.Value} (Thread Id: {threadId})");
 			}
-
-			doneEvent.Set();
 		}
 	}
 }
