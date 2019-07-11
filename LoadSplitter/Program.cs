@@ -33,6 +33,8 @@ namespace LoadSplitter
 				var nextChunkSize = numItemsToProcess >= config.DataChunkSize ? config.DataChunkSize : numItemsToProcess;
 				var dataToProcess = data.GetRange(startIndex, nextChunkSize);
 
+				Console.WriteLine($"Processing next {nextChunkSize} items of {numItemsToProcess} starting at {startIndex}");
+
 				numItemsToProcess -= nextChunkSize;
 				startIndex += nextChunkSize;
 

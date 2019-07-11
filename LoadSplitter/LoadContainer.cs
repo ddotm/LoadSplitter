@@ -5,7 +5,7 @@ namespace LoadSplitter
 {
 	public class LoadContainer
 	{
-		public static int NumOfItems { get; set; } = 1002;
+		public static int NumOfItems { get; set; } = 10000;
 		public List<DataItem> DataItems { get; set; }
 
 		public LoadContainer()
