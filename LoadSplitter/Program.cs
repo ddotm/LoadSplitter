@@ -30,9 +30,14 @@ namespace LoadSplitter
 			var startIndex = 0;
 			while (numItemsToProcess > 0)
 			{
-				doneEvents.RemoveAll(x => x.SafeWaitHandle.IsClosed == true);
-				if (doneEvents.Count > 50)
+				if (doneEvents.Count > config.MaxDoneEvents)
 				{
+					WaitHandle.WaitAll(doneEvents.ToArray());
+					doneEvents.RemoveAll(x =>
+					{
+						x.Close();
+						return x.SafeWaitHandle.IsClosed == true;
+					});
 					continue;
 				}
 
@@ -48,7 +53,7 @@ namespace LoadSplitter
 
 				var doneEvent = new ManualResetEvent(false);
 				doneEvents.Add(doneEvent);
-				
+
 				var threadRequest = new ThreadRequest
 				{
 					DataItems = dataToProcess,
@@ -77,7 +82,6 @@ namespace LoadSplitter
 			}
 
 			doneEvent.Set();
-			doneEvent.Close();
 		}
 	}
 }
