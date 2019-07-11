@@ -30,16 +30,25 @@ namespace LoadSplitter
 			var startIndex = 0;
 			while (numItemsToProcess > 0)
 			{
-				var nextChunkSize = numItemsToProcess >= config.DataChunkSize ? config.DataChunkSize : numItemsToProcess;
+				doneEvents.RemoveAll(x => x.SafeWaitHandle.IsClosed == true);
+				if (doneEvents.Count > 50)
+				{
+					continue;
+				}
+
+				var nextChunkSize =
+					numItemsToProcess >= config.DataChunkSize ? config.DataChunkSize : numItemsToProcess;
 				var dataToProcess = data.GetRange(startIndex, nextChunkSize);
 
-				Console.WriteLine($"Processing next {nextChunkSize} items of {numItemsToProcess} starting at {startIndex}");
+				Console.WriteLine(
+					$"Processing next {nextChunkSize} items of {numItemsToProcess} starting at {startIndex}");
 
 				numItemsToProcess -= nextChunkSize;
 				startIndex += nextChunkSize;
 
 				var doneEvent = new ManualResetEvent(false);
 				doneEvents.Add(doneEvent);
+				
 				var threadRequest = new ThreadRequest
 				{
 					DataItems = dataToProcess,
@@ -68,6 +77,7 @@ namespace LoadSplitter
 			}
 
 			doneEvent.Set();
+			doneEvent.Close();
 		}
 	}
 }
