@@ -22,7 +22,7 @@ namespace LoadSplitter
 
 			stopwatch.Stop();
 			var multithreadElapsed = stopwatch.Elapsed;
-			
+
 			// SINGLE THREAD PROCESSING for benchmarking
 //			stopwatch.Reset();
 //			stopwatch.Start();
@@ -66,12 +66,10 @@ namespace LoadSplitter
 					continue;
 				}
 
-				var nextChunkSize =
-					numItemsToProcess >= config.DataChunkSize ? config.DataChunkSize : numItemsToProcess;
+				var nextChunkSize = numItemsToProcess >= config.DataChunkSize ? config.DataChunkSize : numItemsToProcess;
 				var dataToProcess = data.GetRange(startIndex, nextChunkSize);
-				
-				Console.WriteLine(
-					$"Processing next {nextChunkSize} items of {numItemsToProcess} starting at {startIndex}");
+
+				Console.WriteLine($"Processing next {nextChunkSize} items of {numItemsToProcess} starting at {startIndex}");
 
 				numItemsToProcess -= nextChunkSize;
 				startIndex += nextChunkSize;
