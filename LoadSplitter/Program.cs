@@ -31,8 +31,7 @@ namespace LoadSplitter
 //			Console.WriteLine(
 //				$"1 thread took {stopwatch.Elapsed} to process {dataContainer.DataItems.Count}");
 
-			Console.WriteLine(
-				$"{config.MaxWorkerThreads} threads took {multithreadElapsed} to process {dataContainer.DataItems.Count}");
+			Console.WriteLine($"{config.MaxWorkerThreads} threads took {multithreadElapsed} to process {dataContainer.DataItems.Count}");
 
 
 			Console.ReadKey();
